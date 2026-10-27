@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Process State Transition Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">PS</div>
+          <div>
+            <div class="brand-name">Process State</div>
+            <small>Simulator</small>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <button class="nav-link active" type="button">Overview</button>
+          <button class="nav-link" type="button">Lifecycle</button>
+          <button class="nav-link" type="button">Scheduling</button>
+          <button class="nav-link" type="button">Logs</button>
+          <button class="nav-link" type="button">Learn</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="mini-card">
+            <span class="label">Mode</span>
+            <strong>Round Robin</strong>
+          </div>
+          <div class="mini-card">
+            <span class="label">Status</span>
+            <strong id="globalStatus">Idle</strong>
+          </div>
+        </div>
+      </aside>
+
+      <div class="main-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Operating Systems | Process Lifecycle Visualization</p>
+            <h1>Process State Transition Simulator</h1>
+          </div>
+
+          <div class="topbar-actions">
+            <button id="sampleDataBtn" class="secondary-button" type="button">Sample Data</button>
+            <button id="startSimulationBtn" class="primary-button" type="button">Start Simulation</button>
+            <button id="pauseSimulationBtn" class="ghost-button" type="button">Pause</button>
+            <button id="resumeSimulationBtn" class="ghost-button" type="button">Resume</button>
+            <button id="stepSimulationBtn" class="ghost-button" type="button">Step Forward</button>
+            <button id="resetSimulationBtn" class="danger-button" type="button">Reset</button>
+          </div>
+        </header>
+
+        <main class="content-area">
+          <section id="summaryCards" class="stats-grid" aria-label="Process summary cards"></section>
+
+          <section class="panel diagram-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">State machine</p>
+                <h2>Process State Diagram</h2>
+              </div>
+              <div class="legend" aria-label="State legend">
+                <span><i class="swatch new"></i> NEW</span>
+                <span><i class="swatch ready"></i> READY</span>
+                <span><i class="swatch running"></i> RUNNING</span>
+                <span><i class="swatch waiting"></i> WAITING</span>
+                <span><i class="swatch terminated"></i> TERMINATED</span>
+              </div>
+            </div>
+
+            <div class="diagram-layout">
+              <div class="svg-panel">
+                <svg id="stateDiagram" viewBox="0 0 1000 560" role="img" aria-label="Process state transition diagram"></svg>
+              </div>
+
+              <aside class="state-inspector" aria-live="polite">
+                <div id="stateInspectorBadge" class="state-badge ready">READY</div>
+                <p id="stateInspectorDescription" class="state-description"></p>
+                <ul id="stateProcessList" class="state-process-list"></ul>
+              </aside>
+            </div>
+          </section>
+
+          <section class="two-column-grid">
+            <div class="panel form-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Process creation</p>
+                  <h2>Create New Process</h2>
+                </div>
+              </div>
+
+              <form id="processForm" class="stacked-form">
+                <label>
+                  <span>Process Name</span>
+                  <input id="processNameInput" name="processName" type="text" maxlength="24" placeholder="e.g. Browser" required />
+                </label>
+
+                <div class="inline-fields">
+                  <label>
+                    <span>Priority</span>
+                    <input id="processPriorityInput" name="priority" type="number" min="1" max="10" value="3" />
+                  </label>
+
+                  <label>
+                    <span>CPU Burst</span>
+                    <input id="processBurstInput" name="cpuBurst" type="number" min="1" max="30" value="6" />
+                  </label>
+                </div>
+
+                <button class="primary-button full-width" type="submit">Create Process</button>
+              </form>
+            </div>
+
+            <div class="panel controls-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Control center</p>
+                  <h2>Selected Process Controls</h2>
+                </div>
+              </div>
+
+              <div class="control-grid">
+                <button id="admitBtn" type="button" class="control-action">Admit to Ready Queue</button>
+                <button id="dispatchBtn" type="button" class="control-action">Dispatch to CPU</button>
+                <button id="preemptBtn" type="button" class="control-action">Preempt</button>
+                <button id="ioRequestBtn" type="button" class="control-action">Request I/O</button>
+                <button id="ioCompleteBtn" type="button" class="control-action">Complete I/O</button>
+                <button id="terminateBtn" type="button" class="control-action danger-action">Terminate</button>
+              </div>
+
+              <div class="scheduler-config">
+                <label>
+                  <span>Time Quantum</span>
+                  <input id="timeQuantumInput" type="number" min="1" max="10" value="3" />
+                </label>
+
+                <label>
+                  <span>Simulation Speed</span>
+                  <select id="simulationSpeedInput">
+                    <option value="1200">1x</option>
+                    <option value="800">2x</option>
+                    <option value="500">3x</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="queue-panel">
+                <div class="queue-header">
+                  <span>Ready Queue</span>
+                  <span id="queueCountBadge" class="badge">0</span>
+                </div>
+                <div id="readyQueueList" class="queue-list" aria-live="polite"></div>
+              </div>
+
+              <div class="runtime-metrics">
+                <div class="mini-card">
+                  <span class="label">Running</span>
+                  <strong id="runningProcessLabel">None</strong>
+                </div>
+                <div class="mini-card">
+                  <span class="label">CPU</span>
+                  <strong id="cpuStatusLabel">Idle</strong>
+                </div>
+              </div>
+
+              <div class="gantt-panel">
+                <div class="queue-header">
+                  <span>CPU Timeline</span>
+                </div>
+                <div id="ganttChart" class="gantt-chart" aria-live="polite"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel details-panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">Process inspection</p>
+                <h2>Selected Process Details</h2>
+              </div>
+            </div>
+            <div id="processDetailsCard" class="details-card" aria-live="polite"></div>
+          </section>
+
+          <section class="panel table-panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">Management view</p>
+                <h2>Process Table</h2>
+              </div>
+              <div class="table-header-actions">
+                <button id="exportProcessesBtn" class="secondary-button" type="button">Export CSV</button>
+              </div>
+            </div>
+
+            <div class="table-toolbar">
+              <input id="processSearchInput" type="search" placeholder="Search by ID or name" aria-label="Search processes" />
+              <select id="processStateFilter" aria-label="Filter by process state">
+                <option value="ALL">All states</option>
+                <option value="NEW">NEW</option>
+                <option value="READY">READY</option>
+                <option value="RUNNING">RUNNING</option>
+                <option value="WAITING">WAITING</option>
+                <option value="TERMINATED">TERMINATED</option>
+              </select>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>State</th>
+                    <th>Priority</th>
+                    <th>Burst</th>
+                    <th>Transitions</th>
+                    <th>Created</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="processTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">Operational log</p>
+                <h2>Process and Scheduler Logs</h2>
+              </div>
+              <div class="table-header-actions">
+                <button id="clearLogsBtn" class="ghost-button" type="button">Clear Logs</button>
+                <button id="exportLogsBtn" class="secondary-button" type="button">Export Logs</button>
+              </div>
+            </div>
+
+            <div class="log-toolbar">
+              <select id="logProcessFilter" aria-label="Filter logs by process">
+                <option value="ALL">All processes</option>
+              </select>
+            </div>
+
+            <div class="table-wrap log-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Process</th>
+                    <th>Event Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody id="logTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel learn-panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">Educational mode</p>
+                <h2>Learn Process States</h2>
+              </div>
+            </div>
+
+            <div id="learningStateCards" class="learning-grid" aria-live="polite"></div>
+
+            <div class="how-it-works">
+              <h3>How It Works</h3>
+              <div class="concept-grid">
+                <article>
+                  <h4>Process lifecycle</h4>
+                  <p>When a process is created, it starts in the NEW state and is admitted to the ready queue after being accepted by the OS.</p>
+                </article>
+                <article>
+                  <h4>Ready queue</h4>
+                  <p>Processes waiting for CPU time are placed in READY, from where the scheduler selects the next process according to dispatch policy.</p>
+                </article>
+                <article>
+                  <h4>CPU scheduling</h4>
+                  <p>Round Robin is a preemptive policy that allocates a fixed time quantum to each process before the OS requeues it.</p>
+                </article>
+                <article>
+                  <h4>Context switching</h4>
+                  <p>Switching from one process to another saves the running context and restores the next task so the CPU remains busy.</p>
+                </article>
+                <article>
+                  <h4>I/O waiting</h4>
+                  <p>When a process requests I/O, it moves to WAITING until the device completes the operation and the process returns to READY.</p>
+                </article>
+                <article>
+                  <h4>Termination</h4>
+                  <p>After the CPU burst finishes or the OS kills the process, it reaches TERMINATED, which is a permanent final state.</p>
+                </article>
+              </div>
+            </div>
+
+            <div class="guided-demo">
+              <div class="demo-header">
+                <h3>Guided Demo</h3>
+                <button id="guidedDemoBtn" class="primary-button" type="button">Run Demo</button>
+              </div>
+              <p id="demoStepText">Click run demo to see a typical process lifecycle walkthrough.</p>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="resetModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+      <div class="modal-card">
+        <h3 id="resetTitle">Reset Simulation</h3>
+        <p>This will stop the scheduler, clear the current process state, and restore the default demo configuration.</p>
+        <div class="modal-actions">
+          <button id="cancelResetBtn" class="ghost-button" type="button">Cancel</button>
+          <button id="confirmResetBtn" class="danger-button" type="button">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
